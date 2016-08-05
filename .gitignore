@@ -1,2 +1,5 @@
 MomoGames.Utility/obj/
 .vs/
+MomoGames.UtilityTests/obj/
+MomoGames.UtilityTests/bin/
+MomoGames.Utility/bin/
