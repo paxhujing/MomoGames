@@ -27,7 +27,7 @@ namespace MomoGames.Utility
         /// </summary>
         /// <param name="layer">层数。</param>
         /// <param name="data">数据。</param>
-        public TimerSlotElementHeader(Byte layer,Int16 data)
+        public TimerSlotElementHeader(Byte layer,Byte data)
         {
             this._layer = layer;
             this._data = data;
@@ -59,11 +59,11 @@ namespace MomoGames.Utility
         /// <summary>
         /// 头部数据。
         /// </summary>
-        private readonly Int16 _data;
+        private readonly Byte _data;
         /// <summary>
         /// 获取头部值。
         /// </summary>
-        public Int16 Data
+        public Byte Data
         {
             get { return this._data; }
         }
@@ -110,21 +110,21 @@ namespace MomoGames.Utility
         /// <summary>
         /// 将无符号32位数值转换为计时器槽元素头。
         /// </summary>
-        /// <param name="value">无符号32位数值。</param>
-        public static implicit operator TimerSlotElementHeader(UInt32 value)
+        /// <param name="value">无符号16位数值。</param>
+        public static implicit operator TimerSlotElementHeader(UInt16 value)
         {
-            return new TimerSlotElementHeader((Byte)(value >> 24), (Int16)value);
+            return new TimerSlotElementHeader((Byte)(value >> 8), (Byte)value);
         }
 
         /// <summary>
-        /// 将计时器槽元素头转换为无符号32位数值。
+        /// 将计时器槽元素头转换为无符号16位数值。
         /// </summary>
         /// <param name="header">计时器槽元素头。</param>
-        public static explicit operator UInt32(TimerSlotElementHeader header)
+        public static explicit operator UInt16(TimerSlotElementHeader header)
         {
-            UInt32 value = 0;
+            UInt16 value = 0;
             value |= (UInt16)header.Data;
-            value |= (UInt32)(header.Layer << 24);
+            value |= (UInt16)(header.Layer << 8);
             return value;
         }
 

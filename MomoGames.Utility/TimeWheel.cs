@@ -28,12 +28,7 @@ namespace MomoGames.Utility
         /// <summary>
         /// 同步对象。
         /// </summary>
-        private readonly Object _syncRoot = new Object();
-
-        /// <summary>
-        /// 计数器。
-        /// </summary>
-        internal Int32 TimerCounter;
+        internal readonly Object _syncRoot = new Object();
 
         #endregion
 
@@ -47,7 +42,7 @@ namespace MomoGames.Utility
         /// <param name="durationPerTick">每一刻度表示大于0的时长，单位毫秒。</param>
         /// <param name="slotCount">刻度数量。</param>
         /// <param name="slotsProvider">创建用于存储计时器元素的列表。</param>
-        protected TimeWheel(Int32 durationPerTick, Int16 slotCount, Func<Int16, ICollection<TimerSlotElement>[]> slotsProvider)
+        protected TimeWheel(Int32 durationPerTick, Byte slotCount, Func<Byte, ICollection<TimerSlotElement>[]> slotsProvider)
         {
             if (durationPerTick < 0)
             {
@@ -62,6 +57,7 @@ namespace MomoGames.Utility
             this._slots = slotsProvider(slotCount);
             this._timer = new System.Timers.Timer(durationPerTick);
             this._timer.Elapsed += _timer_Elapsed;
+            AutoRun = true;
         }
 
         /// <summary>
@@ -69,10 +65,9 @@ namespace MomoGames.Utility
         /// </summary>
         /// <param name="durationPerTick">每一刻度表示大于0的时长，单位毫秒。</param>
         /// <param name="slotCount">刻度数量。</param>
-        protected TimeWheel(Int32 durationPerTick, Int16 slotCount)
+        protected TimeWheel(Int32 durationPerTick, Byte slotCount)
             : this(durationPerTick, slotCount, CreateTimersSlots)
         {
-            
         }
 
         #endregion
@@ -95,6 +90,27 @@ namespace MomoGames.Utility
 
         #endregion
 
+        #region Count
+
+        /// <summary>
+        /// 计数器。
+        /// </summary>
+        internal Int32 _timerCounter;
+        /// <summary>
+        /// 计时器个数。
+        /// </summary>
+        public Int32 TimerCount
+        {
+            get { return this._timerCounter; }
+        }
+
+        #endregion
+
+        public Boolean AutoRun
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// 获取时间轮的当前时间。
@@ -123,7 +139,7 @@ namespace MomoGames.Utility
         /// </summary>
         /// <param name="slotCount">时间槽数量。</param>
         /// <returns>时间槽列表。</returns>
-        protected static ICollection<TimerSlotElement>[] CreateTimersSlots(Int16 slotCount)
+        protected static ICollection<TimerSlotElement>[] CreateTimersSlots(Byte slotCount)
         {
             HashSet<TimerSlotElement>[] slots = new HashSet<TimerSlotElement>[slotCount];
             for (Int32 i = 0; i < slots.Length; i++)
@@ -139,7 +155,8 @@ namespace MomoGames.Utility
         /// <param name="totalTicks">总的Tick数。</param>
         /// <param name="element">时间槽元素。</param>
         /// <param name="tick">所属的时间槽。</param>
-        protected abstract void CreateHeaders(Int32 totalTicks, TimerSlotElement element, out Int16 tick);
+        /// <returns>是否进位。</returns>
+        protected abstract Boolean CreateHeaders(Int64 totalTicks, TimerSlotElement element, out Byte tick);
 
         /// <summary>
         /// 注册一个计时器。
@@ -150,13 +167,16 @@ namespace MomoGames.Utility
         public TimerSlotElement Register(Int32 elapsed, Action callback)
         {
             if (elapsed < this._durationPerTick) return null;
-            Int32 totalTicks = (CurrentTime + elapsed)/this._durationPerTick;
-            Int16 tick;
+            Int64 totalTicks = elapsed / this._durationPerTick;
+            Byte tick;
             TimerSlotElement element = new TimerSlotElement(callback);
             CreateHeaders(totalTicks, element, out tick);
             ICollection<TimerSlotElement> slot = this._slots[tick];
-            element.Slot = slot;
-            slot.Add(element);
+            element.Load(this, slot);
+            if(AutoRun)
+            {
+                this._timer.Start();
+            }
             return element;
         }
 
@@ -166,14 +186,21 @@ namespace MomoGames.Utility
 
         private void _timer_Elapsed(Object sender, ElapsedEventArgs e)
         {
-            Int16[] tickOfEachLayer = null;
+            Byte[] tickOfEachLayer = null;
             lock (this._syncRoot)
             {
+                if (AutoRun)
+                {
+                    if (this._timerCounter == 0)
+                    {
+                        this._timer.Stop();
+                    }
+                }
                 OnTick();
                 tickOfEachLayer = GetTickOfEachLayer();
             }
             TimerSlotElement[] elements = null;
-            ICollection<TimerSlotElement> slot = this._slots[tickOfEachLayer[tickOfEachLayer.Length - 1]];
+            ICollection<TimerSlotElement> slot = this._slots[tickOfEachLayer[0]];
             lock (slot)
             {
                 if (slot.Count == 0) return;
@@ -182,7 +209,7 @@ namespace MomoGames.Utility
             ExecuteCore(elements, tickOfEachLayer);
         }
 
-        private void ExecuteCore(TimerSlotElement[] elements, Int16[] tickOfEachLayer)
+        private void ExecuteCore(TimerSlotElement[] elements, Byte[] tickOfEachLayer)
         {
             Collection<TimerSlotElement> candidature = new Collection<TimerSlotElement>();
             Collection<TimerSlotElement> others = new Collection<TimerSlotElement>();
@@ -211,7 +238,7 @@ namespace MomoGames.Utility
         {
             Object[] args = (Object[])state;
             Collection<TimerSlotElement> items = (Collection<TimerSlotElement>)args[0];
-            Int16[] tickOfEachLayer = (Int16[])args[1];
+            Byte[] tickOfEachLayer = (Byte[])args[1];
 
             for (Int32 i = 0; i < items.Count; i++)
             {
@@ -227,13 +254,13 @@ namespace MomoGames.Utility
         {
             Object[] args = (Object[])state;
             Collection<TimerSlotElement> items = (Collection<TimerSlotElement>)args[0];
-            Int16[] tickOfEachLayer = (Int16[])args[1];
+            Byte[] tickOfEachLayer = (Byte[])args[1];
 
             Collection<TimerSlotElement> executions = new Collection<TimerSlotElement>();
             for (Int32 i = 0; i < items.Count; i++)
             {
                 if (!items[i].IsEnable) continue;
-                if (items[i].HeaderCount == 1)
+                if (items[i].HeaderCount == 2)
                 {
                     if (items[i].CurrentHeader.Data <= tickOfEachLayer[items[i].CurrentHeader.Layer])
                     {
@@ -265,7 +292,12 @@ namespace MomoGames.Utility
         /// 获取各层的Tick值，从最高层开始。
         /// </summary>
         /// <returns>各层的Tick值。</returns>
-        protected abstract Int16[] GetTickOfEachLayer();
+        protected abstract Byte[] GetTickOfEachLayer();
+
+        /// <summary>
+        /// 注册。
+        /// </summary>
+        protected abstract void ResetCore();
 
         #endregion
 
@@ -273,6 +305,7 @@ namespace MomoGames.Utility
 
         public void Start()
         {
+            if (AutoRun) return;
             if(!this._timer.Enabled)
             {
                 this._timer.Start();
@@ -281,6 +314,7 @@ namespace MomoGames.Utility
 
         public void Stop()
         {
+            if (AutoRun) return;
             if (this._timer.Enabled)
             {
                 this._timer.Stop();
@@ -294,11 +328,10 @@ namespace MomoGames.Utility
 
         public void Reset()
         {
+            if (AutoRun) return;
             Stop();
             ResetCore();
         }
-
-        protected abstract void ResetCore();
 
         #endregion
 

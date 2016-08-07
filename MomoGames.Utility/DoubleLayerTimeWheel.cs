@@ -8,22 +8,13 @@ namespace MomoGames.Utility
 {
     public class DoubleLayerTimeWheel : SingleLayerTimeWheel
     {
-        #region Fields
-
-        /// <summary>
-        /// 一轮的时长。
-        /// </summary>
-        protected Int32 _durationOnSecondLayer;
-
-        #endregion
-
         #region Constructors
 
         /// <summary>
         /// 初始化类型实例 MomoGames.Utility.DoubleLayerTimeWheel。
         /// </summary>
         /// <param name="ticksOnSecondLayer">第二层的刻度数量。</param>
-        public DoubleLayerTimeWheel(Int16 ticksOnSecondLayer)
+        public DoubleLayerTimeWheel(Byte ticksOnSecondLayer)
             : base()
         {
             Init(ticksOnSecondLayer);
@@ -34,7 +25,7 @@ namespace MomoGames.Utility
         /// </summary>
         /// <param name="ticksOnSecondLayer">第二层的刻度数量。</param>
         /// <param name="ticksOnFirstLayer">第一层的刻度数量。</param>
-        public DoubleLayerTimeWheel(Int16 ticksOnSecondLayer, Int16 ticksOnFirstLayer)
+        public DoubleLayerTimeWheel(Byte ticksOnSecondLayer, Byte ticksOnFirstLayer)
             : base(ticksOnFirstLayer)
         {
             Init(ticksOnSecondLayer);
@@ -46,7 +37,7 @@ namespace MomoGames.Utility
         /// <param name="ticksOnSecondLayer">第二层的刻度数量。</param>
         /// <param name="ticksOnFirstLayer">第一层的刻度数量。</param>
         /// <param name="durationPerTick">刻度，单位毫秒。</param>
-        public DoubleLayerTimeWheel(Int16 ticksOnSecondLayer, Int16 ticksOnFirstLayer, Int32 durationPerTick)
+        public DoubleLayerTimeWheel(Byte ticksOnSecondLayer, Byte ticksOnFirstLayer, Int32 durationPerTick)
             : base(ticksOnFirstLayer, durationPerTick)
         {
             Init(ticksOnSecondLayer);
@@ -59,7 +50,7 @@ namespace MomoGames.Utility
         /// <param name="ticksOnFirstLayer">第一层的刻度数量。</param>
         /// <param name="durationPerTick">刻度，单位毫秒。</param>
         /// <param name="slotsProvider">创建用于存储计时器元素的列表。</param>
-        public DoubleLayerTimeWheel(Int16 ticksOnSecondLayer, Int16 ticksOnFirstLayer, Int32 durationPerTick, Func<Int16, ICollection<TimerSlotElement>[]> slotsProvider)
+        public DoubleLayerTimeWheel(Byte ticksOnSecondLayer, Byte ticksOnFirstLayer, Int32 durationPerTick, Func<Byte, ICollection<TimerSlotElement>[]> slotsProvider)
             : base(ticksOnFirstLayer, durationPerTick, slotsProvider)
         {
             Init(ticksOnSecondLayer);
@@ -71,9 +62,9 @@ namespace MomoGames.Utility
 
         #region TicksOnSecondLayer
 
-        private Int16 _ticksOnSecondLayer;
+        private Byte _ticksOnSecondLayer;
 
-        public Int16 TicksOnSecondLayer
+        public Byte TicksOnSecondLayer
         {
             get { return this._ticksOnSecondLayer; }
         }
@@ -85,11 +76,11 @@ namespace MomoGames.Utility
         /// <summary>
         /// 第二层的Tick值。
         /// </summary>
-        private Int16 _currentTickOnSecondLayer;
+        private Byte _currentTickOnSecondLayer;
         /// <summary>
         /// 获取第二层的Tick值。
         /// </summary>
-        public Int16 CurrentTickOnSecondLayer
+        public Byte CurrentTickOnSecondLayer
         {
             get { return this._currentTickOnSecondLayer; }
         }
@@ -114,7 +105,7 @@ namespace MomoGames.Utility
         {
             get
             {
-                return base.CurrentTime * this._ticksOnSecondLayer;
+                return (this._currentTickOnSecondLayer * TicksOnFirstLayer ) * DurationPerTick + base.CurrentTime;
             }
         }
 
@@ -122,14 +113,13 @@ namespace MomoGames.Utility
 
         #region Methods
 
-        private void Init(Int16 ticksOnSecondLayer)
+        private void Init(Byte ticksOnSecondLayer)
         {
             if (ticksOnSecondLayer <= 0)
             {
                 throw new ArgumentException("ticksOnSecondLayer must bigger than 0.");
             }
             this._ticksOnSecondLayer = ticksOnSecondLayer;
-            this._durationOnSecondLayer = ticksOnSecondLayer * this._durationOnFirstLayer;
         }
 
         /// <summary>
@@ -138,20 +128,29 @@ namespace MomoGames.Utility
         /// <param name="totalTicks">总的Tick数。</param>
         /// <param name="element">时间槽元素。</param>
         /// <param name="tick">所属的时间槽。</param>
-        protected override void CreateHeaders(Int32 totalTicks, TimerSlotElement element, out Int16 tick)
+        protected override Boolean CreateHeaders(Int64 totalTicks, TimerSlotElement element, out Byte tick)
         {
-            Int16 remainder = (Int16)(totalTicks % this._ticksOnSecondLayer);
-            base.CreateHeaders(remainder, element, out tick);
-            element.AddHeader(Layer, (Int16)(totalTicks / this._ticksOnSecondLayer));
+            Byte remainder = (Byte)(totalTicks % TicksOnFirstLayer);
+            Byte data = (Byte)(totalTicks / TicksOnFirstLayer + this._currentTickOnSecondLayer) ;
+            if (base.CreateHeaders(remainder, element, out tick))
+            {
+                data += 1;
+            }
+            if(data < TicksOnSecondLayer)
+            {
+                element.AddHeader(Layer, data);
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
         /// 获取各层的Tick值，从最高层开始。
         /// </summary>
         /// <returns>各层的Tick值。</returns>
-        protected override Int16[] GetTickOfEachLayer()
+        protected override Byte[] GetTickOfEachLayer()
         {
-            return new Int16[] { this._currentTickOnSecondLayer, CurrentTickOnFirstLayer };
+            return new Byte[] { CurrentTickOnFirstLayer, this._currentTickOnSecondLayer};
         }
 
         /// <summary>
@@ -171,6 +170,9 @@ namespace MomoGames.Utility
             return false;
         }
 
+        /// <summary>
+        /// 注册。
+        /// </summary>
         protected override void ResetCore()
         {
             this._currentTickOnSecondLayer = 0;

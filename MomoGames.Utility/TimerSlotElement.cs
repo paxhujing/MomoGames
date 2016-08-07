@@ -29,14 +29,11 @@ namespace MomoGames.Utility
             }
             this._callback = callback;
             this._headers = new Stack<TimerSlotElementHeader>();
-            IsEnable = true;
         }
 
         #endregion
 
         #region Properties
-
-        #region Slot
 
         /// <summary>
         /// 所属时间槽。
@@ -44,10 +41,17 @@ namespace MomoGames.Utility
         internal ICollection<TimerSlotElement> Slot
         {
             get;
-            set;
+            private set;
         }
 
-        #endregion
+        /// <summary>
+        /// 所属时间轮。
+        /// </summary>
+        internal TimeWheel Owner
+        {
+            get;
+            private set;
+        }
 
         /// <summary>
         /// 头数量。
@@ -62,7 +66,7 @@ namespace MomoGames.Utility
         /// </summary>
         internal Boolean IsCandidature
         {
-            get { return this._headers.Count < 2; }
+            get { return this._headers.Count < 3; }
         }
 
         /// <summary>
@@ -119,7 +123,7 @@ namespace MomoGames.Utility
         /// </summary>
         /// <param name="layer">层数。</param>
         /// <param name="data">数据。</param>
-        internal void AddHeader(Byte layer,Int16 data)
+        internal void AddHeader(Byte layer,Byte data)
         {
             if (data == 0) return;
             TimerSlotElementHeader header = new TimerSlotElementHeader(layer, data);
@@ -138,18 +142,38 @@ namespace MomoGames.Utility
         /// 卸载计时器。
         /// </summary>
         /// <returns>成功返回true；失败返回false。</returns>
-        public Boolean Unload()
+        public void Unload()
         {
             lock (this)
             {
                 if (IsEnable)
                 {
+                    lock(Owner._syncRoot)
+                    {
+                        Slot.Remove(this);
+                        Owner._timerCounter--;
+                    }
                     IsEnable = false;
-                    Slot.Remove(this);
                     Slot = null;
-                    return true;
+                    Owner = null;
                 }
-                return false;
+            }
+        }
+
+        /// <summary>
+        /// 加载计时器。
+        /// </summary>
+        /// <param name="owner">所属时间轮。</param>
+        /// <param name="slot">所属时间槽。</param>
+        internal void Load(TimeWheel owner,ICollection<TimerSlotElement> slot)
+        {
+            Owner = owner;
+            Slot = slot;
+            IsEnable = true;
+            lock(owner._syncRoot)
+            {
+                slot.Add(this);
+                owner._timerCounter++;
             }
         }
 

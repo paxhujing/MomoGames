@@ -24,19 +24,17 @@ namespace MomoGames.Utility.Tests
 
         private void Callback()
         {
-            Debug.WriteLine("Callback time: " + tw.CurrentTime);
+            Debug.WriteLine("Time out.{0}", tw.CurrentTime);
         }
 
         [TestMethod()]
         public void StartTest()
         {
             tw.Register(5050, Callback);
-            tw.Start();
-            while(true)
-            {
-                Debug.WriteLine(tw.CurrentTime);
-                Thread.Sleep(50);
-            }
+            tw.Register(6100, Callback);
+            Thread.Sleep(10000);
+            tw.Register(1000, Callback);
+            Console.ReadKey();
             Assert.Fail();
         }
     }

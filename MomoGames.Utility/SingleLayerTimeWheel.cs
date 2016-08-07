@@ -11,15 +11,6 @@ namespace MomoGames.Utility
     /// </summary>
     public class SingleLayerTimeWheel: TimeWheel
     {
-        #region Fields
-
-        /// <summary>
-        /// 一轮的时长。
-        /// </summary>
-        protected Int32 _durationOnFirstLayer;
-
-        #endregion
-
         #region Constructors
 
         /// <summary>
@@ -34,7 +25,7 @@ namespace MomoGames.Utility
         /// 初始化类型实例 MomoGames.Utility.SingleLayerTimeWheel。
         /// </summary>
         /// <param name="ticksOnFirstLayer">第一层的刻度数量。</param>
-        public SingleLayerTimeWheel(Int16 ticksOnFirstLayer)
+        public SingleLayerTimeWheel(Byte ticksOnFirstLayer)
             : this(ticksOnFirstLayer, 50)
         {
 
@@ -45,7 +36,7 @@ namespace MomoGames.Utility
         /// </summary>
         /// <param name="ticksOnFirstLayer">第一层的刻度数量。</param>
         /// <param name="durationPerTick">刻度，单位毫秒。</param>
-        public SingleLayerTimeWheel(Int16 ticksOnFirstLayer, Int32 durationPerTick)
+        public SingleLayerTimeWheel(Byte ticksOnFirstLayer, Int32 durationPerTick)
             : base(durationPerTick, ticksOnFirstLayer)
         {
             Init(ticksOnFirstLayer);
@@ -57,7 +48,7 @@ namespace MomoGames.Utility
         /// <param name="ticksOnFirstLayer">第一层的刻度数量。</param>
         /// <param name="durationPerTick">刻度，单位毫秒。</param>
         /// <param name="slotsProvider">创建用于存储计时器元素的列表。</param>
-        public SingleLayerTimeWheel(Int16 ticksOnFirstLayer, Int32 durationPerTick, Func<Int16, ICollection<TimerSlotElement>[]> slotsProvider)
+        public SingleLayerTimeWheel(Byte ticksOnFirstLayer, Int32 durationPerTick, Func<Byte, ICollection<TimerSlotElement>[]> slotsProvider)
             : base(durationPerTick, ticksOnFirstLayer, slotsProvider)
         {
             Init(ticksOnFirstLayer);
@@ -69,9 +60,9 @@ namespace MomoGames.Utility
 
         #region TicksOnFirstLayer
 
-        private Int16 _ticksOnFirstLayer;
+        private Byte _ticksOnFirstLayer;
 
-        public Int16 TicksOnFirstLayer
+        public Byte TicksOnFirstLayer
         {
             get { return this._ticksOnFirstLayer; }
         }
@@ -83,11 +74,11 @@ namespace MomoGames.Utility
         /// <summary>
         /// 第一层的Tick值。
         /// </summary>
-        private Int16 _currentTickOnFirstLayer;
+        private Byte _currentTickOnFirstLayer;
         /// <summary>
         /// 获取第一层的Tick值。
         /// </summary>
-        public Int16 CurrentTickOnFirstLayer
+        public Byte CurrentTickOnFirstLayer
         {
             get { return this._currentTickOnFirstLayer; }
         }
@@ -120,14 +111,13 @@ namespace MomoGames.Utility
 
         #region Methods
 
-        private void Init(Int16 ticksOnFirstLayer)
+        private void Init(Byte ticksOnFirstLayer)
         {
             if (ticksOnFirstLayer <= 0)
             {
                 throw new ArgumentException("ticksOnFirstLayer must bigger than 0.");
             }
             this._ticksOnFirstLayer = ticksOnFirstLayer;
-            this._durationOnFirstLayer = ticksOnFirstLayer * DurationPerTick;
         }
 
         /// <summary>
@@ -136,19 +126,28 @@ namespace MomoGames.Utility
         /// <param name="totalTicks">总的Tick数。</param>
         /// <param name="element">时间槽元素。</param>
         /// <param name="tick">所属的时间槽。</param>
-        protected override void CreateHeaders(Int32 totalTicks, TimerSlotElement element, out Int16 tick)
+        protected override Boolean CreateHeaders(Int64 totalTicks, TimerSlotElement element, out Byte tick)
         {
-            tick = (Int16)(totalTicks % this._ticksOnFirstLayer);
-            element.AddHeader(Layer, tick);
+            totalTicks += this._currentTickOnFirstLayer;
+            tick = (Byte)(totalTicks % this._ticksOnFirstLayer);
+            if (totalTicks < TicksOnFirstLayer)
+            {
+                element.AddHeader(Layer, tick);
+                return false;
+            }
+            else
+            {
+                return true;
+            }
         }
 
         /// <summary>
         /// 获取各层的Tick值，从最高层开始。
         /// </summary>
         /// <returns>各层的Tick值。</returns>
-        protected override Int16[] GetTickOfEachLayer()
+        protected override Byte[] GetTickOfEachLayer()
         {
-            return new Int16[] { this._currentTickOnFirstLayer };
+            return new Byte[] { this._currentTickOnFirstLayer };
         }
 
         /// <summary>
@@ -165,6 +164,9 @@ namespace MomoGames.Utility
             return false;
         }
 
+        /// <summary>
+        /// 注册。
+        /// </summary>
         protected override void ResetCore()
         {
             this._currentTickOnFirstLayer = 0;
