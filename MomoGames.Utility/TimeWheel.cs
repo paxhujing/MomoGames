@@ -163,13 +163,14 @@ namespace MomoGames.Utility
         /// </summary>
         /// <param name="elapsed">时间间隔，单位毫秒。param>
         /// <param name="callback">回到方法。<param>
+        /// <param name="state">包含方法所用数据的对象。</param>
         /// <returns>成功返回 TimerSlotElement实例，否则返回 null。<returns>
-        public TimerSlotElement Register(Int32 elapsed, Action callback)
+        public TimerSlotElement Register(Int32 elapsed, Action<Object> callback,Object state = null)
         {
             if (elapsed < this._durationPerTick) return null;
             Int64 totalTicks = elapsed / this._durationPerTick;
             Byte tick;
-            TimerSlotElement element = new TimerSlotElement(callback);
+            TimerSlotElement element = new TimerSlotElement(callback, state);
             CreateHeaders(totalTicks, element, out tick);
             ICollection<TimerSlotElement> slot = this._slots[tick];
             element.Load(this, slot);
@@ -278,7 +279,7 @@ namespace MomoGames.Utility
             if (executions.Count == 0) return;
             for (Int32 i = 0; i < executions.Count; i++)
             {
-                executions[i].Callback();
+                executions[i].Callback(executions[i].State);
             }
         }
 

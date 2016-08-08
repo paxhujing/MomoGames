@@ -22,7 +22,7 @@ namespace MomoGames.Utility.Tests
             Assert.IsNotNull(result);
         }
 
-        private void Callback()
+        private void Callback(Object state)
         {
             Debug.WriteLine("Time out.{0}", tw.CurrentTime);
         }
