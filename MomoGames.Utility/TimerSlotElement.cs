@@ -21,13 +21,15 @@ namespace MomoGames.Utility
         /// 初始化结构 MomoGames.Utility.TimerSlotElement。
         /// </summary>
         /// <param name="callback">回调方法。</param>
-        internal TimerSlotElement(Action callback)
+        /// <param name="state">包含方法所用数据的对象。</param>
+        internal TimerSlotElement(Action<Object> callback,Object state)
         {
             if (callback == null)
             {
                 throw new ArgumentNullException("callback");
             }
             this._callback = callback;
+            this._state = state;
             this._headers = new Stack<TimerSlotElementHeader>();
         }
 
@@ -80,7 +82,6 @@ namespace MomoGames.Utility
             }
         }
 
-        #region Status
         /// <summary>
         /// 计时器是否启用。
         /// </summary>
@@ -90,17 +91,28 @@ namespace MomoGames.Utility
             internal set;
         }
 
-        #endregion
-
         #region Callback
 
-        private readonly Action _callback;
+        private readonly Action<Object> _callback;
         /// <summary>
         /// 回调方法。
         /// </summary>
-        public Action Callback
+        internal Action<Object> Callback
         {
             get { return this._callback; }
+        }
+
+        #endregion
+
+        #region State
+
+        private readonly Object _state;
+        /// <summary>
+        /// 包含方法所用数据的对象。
+        /// </summary>
+        internal Object State
+        {
+            get { return this._state; }
         }
 
         #endregion
